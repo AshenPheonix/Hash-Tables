@@ -15,6 +15,8 @@ class HashTable:
     def __init__(self, capacity):
         self.capacity = capacity  # Number of buckets in the hash table
         self.storage = [None] * capacity
+        self.load=0
+        self.init_capacity=capacity
 
 
     def _hash(self, key):
@@ -23,7 +25,7 @@ class HashTable:
 
         You may replace the Python hash with DJB2 as a stretch goal.
         '''
-        return hash(key)
+        return self._hash_djb2(key)
 
 
     def _hash_djb2(self, key):
@@ -32,7 +34,12 @@ class HashTable:
 
         OPTIONAL STRETCH: Research and implement DJB2
         '''
-        pass
+        ret = 0
+        char = 0
+        for c in key:
+            char = ord(c)
+            ret = ((ret<<5) + ret)+char
+        return ret
 
 
     def _hash_mod(self, key):
@@ -51,8 +58,29 @@ class HashTable:
 
         Fill this in.
         '''
-        pass
+        keyed = self._hash(key)
+        spot = keyed % self.capacity
+        if not self.storage[spot]:
+            self.load+=1
+            self.storage[spot]=LinkedPair(key,value)
+        else:
+            temp=self.storage[spot]
+            if temp.key==key:
+                temp.value=value
+                return
 
+            while temp.next:
+                if temp.next.key==key:
+                    temp.next.value=value
+                    return
+                else:
+                    temp=temp.next
+
+            self.load+=1
+            temp.next=LinkedPair(key,value)
+
+        if (self.load / self.capacity) >= .7:
+            self.resize()
 
 
     def remove(self, key):
@@ -63,7 +91,23 @@ class HashTable:
 
         Fill this in.
         '''
-        pass
+        spot = self._hash(key) % self.capacity
+        curr = self.storage[spot]
+        if self.storage[spot].key==key:
+            self.storage[spot]=self.storage[spot].next
+            return
+
+        while curr.next:
+            if curr.next.key==key:
+                self.load-=1
+                curr.next=curr.next.next
+                if self.load/self.capacity<=.2:
+                    self.resize('down')
+                return
+            else:
+                curr=curr.next
+
+        print( f"Warning: Key {key} not found")
 
 
     def retrieve(self, key):
@@ -74,17 +118,41 @@ class HashTable:
 
         Fill this in.
         '''
-        pass
+
+        spot= self._hash(key) % self.capacity
+        fetch=self.storage[spot]
+        while fetch:
+            if fetch.key==key:
+                return fetch.value
+            else:
+                fetch=fetch.next
+        return None
 
 
-    def resize(self):
+    def resize(self,dir='up'):
         '''
         Doubles the capacity of the hash table and
         rehash all key/value pairs.
 
         Fill this in.
         '''
-        pass
+        if dir=='up':
+            newCap=self.capacity*2
+        elif dir=='down':
+            newCap=self.capacity//2
+            if newCap<self.init_capacity:
+                return
+
+        newStore=[None]*newCap
+        reserve=self.storage
+        self.storage=newStore
+        self.capacity=newCap
+        for item in reserve:
+            temp=item
+            while temp:
+                self.insert(temp.key,temp.value)
+                temp=temp.next
+            
 
 
 
